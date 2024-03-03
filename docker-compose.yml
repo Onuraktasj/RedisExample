@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:latest
+    container_name: redis-example-db
+    ports:
+      - "5432:5432"
+    networks:
+      - redis-example-network
+    volumes:
+      - ./docker/postgres/initDb.sql:/docker-entrypoint-initdb.d/initDb.sql
+    environment:
+      POSTGRES_DB: redis-example-db
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:latest
+    container_name: redis-example-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - redis-example-network
+    environment:
+      REDIS_PASSWORD: admin
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  app:
+    image: redis-example:latest
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    networks:
+      - redis-example-network
+    ports:
+      - "8081:8081"
+    depends_on:
+      - db
+      - redis
+    links:
+      - db
+      - redis
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/redis-example-db?currentSchema=redis-example
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: admin
+      SPRING_DATASOURCE_HIKARI_SCHEMA: redis-example
+      SPRING_DATASOURCE_HIKARI_POOL_NAME: RedisExampleJPAHikariCP
+      SPRING_FLYWAY_URL: jdbc:postgresql://db:5432/redis-example-db
+      SPRING_FLYWAY_USER: admin
+      SPRING_FLYWAY_PASSWORD: admin
+      SPRING_FLYWAY_SCHEMAS: redis-example
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: admin
+
+networks:
+  redis-example-network:
+    driver: bridge
