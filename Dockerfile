@@ -1,4 +1,4 @@
-ARG APP_JAR=redis-example-0.0.1-SNAPSHOT.jar
+ARG APP_JAR=RedisExample-0.0.1-SNAPSHOT.jar
 FROM gradle:8.5-jdk21 AS build
 COPY . /home/gradle/src
 WORKDIR /home/gradle/src
